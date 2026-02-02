@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Device Tester X Pro</title>
+
+<!-- PWA -->
+<link rel="manifest" href="data:application/json,{
+  &quot;name&quot;:&quot;Device Tester X Pro&quot;,
+  &quot;short_name&quot;:&quot;TesterX&quot;,
+  &quot;start_url&quot;:&quot;.&quot;,
+  &quot;display&quot;:&quot;standalone&quot;,
+  &quot;background_color&quot;:&quot;#05070d&quot;,
+  &quot;theme_color&quot;:&quot;#00ffe0&quot;
+}">
+<meta name="theme-color" content="#00ffe0">
+
+<style>
+body{margin:0;font-family:system-ui;background:#05070d;color:#fff}
+header{text-align:center;padding:16px;font-size:20px;
+background:#0b1020}
+.menu,.card{margin:14px;padding:14px;
+background:#0f172a;border-radius:16px}
+button{width:100%;padding:12px;margin-top:10px;
+background:linear-gradient(90deg,#00ffe0,#00b3ff);
+border:none;border-radius:14px;font-size:16px;font-weight:bold}
+.row{display:flex;justify-content:space-between;margin:6px 0}
+.bar{height:8px;background:#1e293b;border-radius:99px;overflow:hidden}
+.fill{height:100%;background:#00ffe0}
+.hidden{display:none}
+.box{height:120px;background:#000;border-radius:12px;margin-top:10px}
+.center{text-align:center}
+.grade{font-size:32px;font-weight:bold}
+</style>
+</head>
+<body>
+
+<header>⚡ Device Tester X Pro</header>
+
+<div class="menu" id="home">
+<button onclick="show('info')">📊 ข้อมูลเครื่อง</button>
+<button onclick="show('basic')">🎮 เกมเทสพื้นฐาน</button>
+<button onclick="show('advanced')">🔥 เกมเทสขั้นสูง</button>
+<button onclick="show('result')">🏆 ผลคะแนน</button>
+</div>
+
+<!-- INFO -->
+<div class="card hidden" id="info">
+<h3>📱 ข้อมูลเครื่อง</h3>
+<div class="row"><span>CPU</span><span id="cpu"></span></div>
+<div class="row"><span>RAM</span><span id="ram"></span></div>
+<div class="row"><span>Screen</span><span id="screen"></span></div>
+<div class="row"><span>DPI</span><span id="dpi"></span></div>
+<div class="row"><span>Battery</span><span id="bat"></span></div>
+<div class="row"><span>Charging</span><span id="chg"></span></div>
+<div class="row"><span>Emulator</span><span id="emu"></span></div>
+<button onclick="back()">⬅ กลับ</button>
+</div>
+
+<!-- BASIC -->
+<div class="card hidden" id="basic">
+<h3>🟢 พื้นฐาน</h3>
+<div class="row"><span>FPS</span><span id="fps">0</span></div>
+<div class="bar"><div class="fill" id="fpsBar"></div></div>
+
+<button onclick="startCPS()">⚡ CPS Test</button>
+<div class="center">CPS: <span id="cps">0</span></div>
+
+<div class="center">Touch: <span id="touch">0</span></div>
+<div class="box" ontouchstart="touchTest(event)"></div>
+
+<button onclick="back()">⬅ กลับ</button>
+</div>
+
+<!-- ADVANCED -->
+<div class="card hidden" id="advanced">
+<h3>🔴 ขั้นสูง</h3>
+
+<button onclick="startStress()">🔥 CPU Stress</button>
+<div class="center">Stress: <span id="stress">0</span></div>
+
+<button onclick="reaction()">⚡ Reaction Game</button>
+<div class="center">Time: <span id="react">-</span> ms</div>
+
+<button onclick="touchSpam()">👊 Touch Spam</button>
+<div class="center">Score: <span id="spam">0</span></div>
+
+<button onclick="back()">⬅ กลับ</button>
+</div>
+
+<!-- RESULT -->
+<div class="card hidden" id="result">
+<h3>🏆 ผลการทดสอบ</h3>
+<div class="center grade" id="grade">-</div>
+<div class="center">Score: <span id="score">0</span></div>
+<button onclick="save()">💾 บันทึกผล</button>
+<button onclick="showHistory()">📜 ประวัติ</button>
+<div id="history"></div>
+<button onclick="back()">⬅ กลับ</button>
+</div>
+
+<script>
+let score=0;
+
+// Navigation
+function show(id){
+home.classList.add("hidden");
+document.querySelectorAll(".card").forEach(e=>e.classList.add("hidden"));
+document.getElementById(id).classList.remove("hidden");
+}
+function back(){
+home.classList.remove("hidden");
+document.querySelectorAll(".card").forEach(e=>e.classList.add("hidden"));
+}
+
+// INFO
+cpu.innerText=navigator.hardwareConcurrency||"N/A";
+ram.innerText=navigator.deviceMemory?
+navigator.deviceMemory+" GB":"N/A";
+screen.innerText=screen.width+"x"+screen.height;
+dpi.innerText=Math.round(devicePixelRatio*96);
+emu.innerText=/Android SDK|Emulator/i.test(navigator.userAgent)
+?"⚠ Emulator":"✅ Real";
+
+if(navigator.getBattery){
+navigator.getBattery().then(b=>{
+bat.innerText=Math.round(b.level*100)+"%";
+chg.innerText=b.charging?"⚡":"❌";
+});
+}
+
+// FPS
+let f=0,last=performance.now();
+function fpsLoop(now){
+f++;
+if(now-last>=1000){
+fps.innerText=f;
+fpsBar.style.width=Math.min(f,144)/144*100+"%";
+score+=f;
+f=0;last=now;
+}
+requestAnimationFrame(fpsLoop);
+}
+requestAnimationFrame(fpsLoop);
+
+// CPS
+function startCPS(){
+let c=0;
+document.onclick=()=>c++;
+setTimeout(()=>{
+cps.innerText=c;
+score+=c*5;
+document.onclick=null;
+},1000);
+}
+
+// Touch
+function touchTest(e){touch.innerText=e.touches.length}
+
+// Stress
+function startStress(){
+for(let i=0;i<4;i++){
+setInterval(()=>{
+for(let j=0;j<60000;j++){Math.sqrt(Math.random())}
+score+=2;
+stress.innerText=score;
+},10);
+}
+}
+
+// Reaction
+function reaction(){
+react.innerText="...";
+let start=performance.now();
+setTimeout(()=>{
+document.body.onclick=()=>{
+let t=Math.round(performance.now()-start);
+react.innerText=t;
+score+=Math.max(0,1000-t);
+document.body.onclick=null;
+};
+},Math.random()*2000+500);
+}
+
+// Touch Spam
+function touchSpam(){
+let s=0;
+let box=document.createElement("div");
+box.className="box";
+advanced.appendChild(box);
+box.ontouchstart=()=>s++;
+setTimeout(()=>{
+spam.innerText=s;
+score+=s*3;
+box.remove();
+},3000);
+}
+
+// Result
+setInterval(()=>{
+score=Math.min(score,100000);
+scoreEl=score;
+document.getElementById("score").innerText=score;
+grade.innerText=
+score>6000?"S":
+score>4000?"A":
+score>2000?"B":"C";
+},1000);
+
+// Save & History
+function save(){
+let data=JSON.parse(localStorage.getItem("tests")||"[]");
+data.push({score,grade:grade.innerText,time:new Date().toLocaleString()});
+localStorage.setItem("tests",JSON.stringify(data));
+alert("บันทึกแล้ว");
+}
+function showHistory(){
+let data=JSON.parse(localStorage.getItem("tests")||"[]");
+history.innerHTML=data.map(d=>
+`<div>${d.time} | ${d.score} | ${d.grade}</div>`
+).join("");
+}
+</script>
+</body>
+</html>
